@@ -1,0 +1,12 @@
+/target/
+/work/
+/bin/
+/.settings/
+.project
+.classpath
+*.iml
+.idea
+.vscode
+.DS_Store
+/.apt_generated/
+/.apt_generated_tests/

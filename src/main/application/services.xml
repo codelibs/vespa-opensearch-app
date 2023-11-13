@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<services version="1.0" xmlns:deploy="vespa"
+	xmlns:preprocess="properties">
+	<container id="default" version="1.0">
+		<handler
+			id="org.codelibs.vespa.opensearch.handler.RestApiProxyHandler"
+			bundle="vespa-opensearch-app">
+			<binding>http://*/opensearch/*</binding>
+			<binding>http://*/opensearch</binding>
+			<config name="org.codelibs.vespa.opensearch.config.proxy-handler">
+				<vespaHostName>localhost</vespaHostName>
+				<vespaHostPort>8080</vespaHostPort>
+				<pathPrefix>/opensearch</pathPrefix>
+			</config>
+		</handler>
+		<document-api />
+		<nodes>
+			<node hostalias="node1" />
+		</nodes>
+	</container>
+	<content id="doc" version="1.0">
+		<min-redundancy>1</min-redundancy>
+		<documents>
+			<document type="doc" mode="index" />
+		</documents>
+		<nodes>
+			<node hostalias="node1" distribution-key="0" />
+		</nodes>
+	</content>
+</services>
