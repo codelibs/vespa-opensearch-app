@@ -1,0 +1,26 @@
+schema doc {
+    document doc {
+        field doc_id type string {
+            indexing: summary | attribute
+            attribute: fast-search
+        }
+        field title type string {
+            indexing: index | summary
+            index: enable-bm25
+        }
+        field content type string {
+            indexing: index | summary
+            index: enable-bm25
+        }
+    }
+
+    fieldset default {
+        fields: title, content
+    }
+
+    rank-profile default {
+        first-phase {
+            expression: nativeRank(title, content)
+        }
+    }
+}

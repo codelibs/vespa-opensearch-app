@@ -9,7 +9,9 @@ import java.util.logging.Level;
 
 import org.codelibs.core.lang.StringUtil;
 import org.codelibs.vespa.opensearch.action.HttpAction;
+import org.codelibs.vespa.opensearch.action.IndexAction;
 import org.codelibs.vespa.opensearch.action.RootAction;
+import org.codelibs.vespa.opensearch.client.VespaClient;
 import org.codelibs.vespa.opensearch.config.ProxyHandlerConfig;
 import org.codelibs.vespa.opensearch.exception.IncorrectHttpMethodException;
 
@@ -25,43 +27,44 @@ import com.yahoo.jdisc.http.HttpRequest.Method;
 
 public class RestApiProxyHandler extends ThreadedHttpRequestHandler {
 
-    private final String vespaHostName;
-    private final String vespaHostPort;
     private final String pathPrefix;
+
+    private final VespaClient client;
+
+    private String documentType;
 
     private final Map<Method, HttpAction[]> actions;
 
     @Inject
     public RestApiProxyHandler(final Executor executor, final Metric metric, final ProxyHandlerConfig config) {
         super(executor, metric);
-        this.vespaHostName = config.vespaHostName();
-        this.vespaHostPort = String.valueOf(config.vespaHostPort());
-        this.pathPrefix = config.pathPrefix();
+        pathPrefix = config.pathPrefix();
+        documentType = config.documentType();
+        client = new VespaClient(config.vespaEndpoint());
 
         actions = ImmutableMap.<Method, HttpAction[]> builder()//
                 .put(Method.GET, new HttpAction[] { new RootAction(this) })//
+                .put(Method.POST, new HttpAction[] { new IndexAction(this) })//
+                .put(Method.PUT, new HttpAction[] { new IndexAction(this) })//
                 .build();
     }
 
     @Override
     public HttpResponse handle(final HttpRequest httpRequest) {
-        log.log(Level.INFO, () -> "Method:         " + httpRequest.getMethod());
-        log.log(Level.INFO, () -> "URI:            " + httpRequest.getUri());
-        log.log(Level.INFO, () -> "Path:           " + httpRequest.getUri().getPath());
-        log.log(Level.INFO, () -> "Content-Type:   " + httpRequest.getHeader("Content-Type"));
-
+        final Method method = httpRequest.getMethod();
         final String path = getPath(httpRequest);
+        log.log(Level.FINE, () -> httpRequest.getMethod() + " " + path);
         final HttpAction[] httpActions = actions.get(httpRequest.getMethod());
         if (httpActions != null) {
-            final String contentType = httpRequest.getHeader("Content-Type");
+            final String[] paths = path.split("/");
             for (final HttpAction action : httpActions) {
-                if (action.isTarget(contentType, path)) {
+                if (action.isTarget(method, paths)) {
                     return action.execute(httpRequest);
                 }
             }
         }
-        return handleException(httpRequest, 405, new IncorrectHttpMethodException(
-                "Incorrect HTTP method for uri [" + path + "] and method [" + httpRequest.getMethod() + "]"));
+        return handleException(httpRequest, 405,
+                new IncorrectHttpMethodException("Incorrect HTTP method for uri [" + path + "] and method [" + method + "]"));
     }
 
     private String getPath(final HttpRequest httpRequest) {
@@ -76,7 +79,7 @@ public class RestApiProxyHandler extends ThreadedHttpRequestHandler {
         return new HttpAction(this) {
 
             @Override
-            public boolean isTarget(final String contentType, final String path) {
+            public boolean isTarget(final Method method, final String[] paths) {
                 return false;
             }
 

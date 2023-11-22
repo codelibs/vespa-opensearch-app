@@ -1,5 +1,5 @@
 package=org.codelibs.vespa.opensearch.config
 
-vespaHostName string
-vespaHostPort int
+vespaEndpoint string
+documentType string
 pathPrefix string

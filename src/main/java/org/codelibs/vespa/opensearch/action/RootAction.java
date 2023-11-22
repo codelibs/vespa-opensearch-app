@@ -7,6 +7,7 @@ import org.codelibs.vespa.opensearch.handler.RestApiProxyHandler;
 
 import com.yahoo.container.jdisc.HttpRequest;
 import com.yahoo.container.jdisc.HttpResponse;
+import com.yahoo.jdisc.http.HttpRequest.Method;
 
 public class RootAction extends HttpAction {
 
@@ -15,8 +16,8 @@ public class RootAction extends HttpAction {
     }
 
     @Override
-    public boolean isTarget(final String contentType, final String path) {
-        return "/".equals(path);
+    public boolean isTarget(final Method method, final String[] paths) {
+        return paths.length == 0;
     }
 
     @Override

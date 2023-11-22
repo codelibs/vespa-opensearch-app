@@ -1,21 +1,16 @@
 package org.codelibs.vespa.opensearch.action;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
-import java.util.function.Function;
 
-import org.codelibs.curl.CurlException;
-import org.codelibs.curl.CurlResponse;
 import org.codelibs.vespa.opensearch.handler.RestApiProxyHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.core.xcontent.DeprecationHandler;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 import com.yahoo.container.jdisc.HttpRequest;
 import com.yahoo.container.jdisc.HttpResponse;
+import com.yahoo.jdisc.http.HttpRequest.Method;
 
 public abstract class HttpAction {
 
@@ -25,7 +20,7 @@ public abstract class HttpAction {
         this.handler = handler;
     }
 
-    public abstract boolean isTarget(String contentType, String path);
+    public abstract boolean isTarget(Method method, String[] paths);
 
     public abstract HttpResponse execute(HttpRequest httpRequest);
 
@@ -40,11 +35,4 @@ public abstract class HttpAction {
         };
     }
 
-    protected static final Function<CurlResponse, Map<String, Object>> PARSER = response -> {
-        try (InputStream is = response.getContentAsStream()) {
-            return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, is).map();
-        } catch (final Exception e) {
-            throw new CurlException("Failed to access the content.", e);
-        }
-    };
 }
