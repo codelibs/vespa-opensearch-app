@@ -31,7 +31,7 @@ public class RestApiProxyHandler extends ThreadedHttpRequestHandler {
 
     private final VespaClient client;
 
-    private String documentType;
+    private final String documentType;
 
     private final Map<Method, HttpAction[]> actions;
 

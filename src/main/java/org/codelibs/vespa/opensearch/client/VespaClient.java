@@ -9,16 +9,19 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.codelibs.core.exception.IORuntimeException;
 import org.codelibs.curl.Curl;
 import org.codelibs.curl.CurlException;
 import org.codelibs.curl.CurlResponse;
+import org.codelibs.vespa.opensearch.exception.VespaClientException;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
 
 public class VespaClient {
 
-    private static final Logger log = Logger.getLogger(VespaClient.class.getName());;
+    private static final Logger log = Logger.getLogger(VespaClient.class.getName());
 
     private final String endpoint;
 
@@ -30,7 +33,7 @@ public class VespaClient {
         }
     };
 
-    public VespaClient(String endpoint) {
+    public VespaClient(final String endpoint) {
         if (endpoint.endsWith("/")) {
             this.endpoint = endpoint;
         } else {
@@ -43,26 +46,43 @@ public class VespaClient {
             if (response.getHttpStatusCode() == 200) {
                 return response.getContent(PARSER);
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             log.log(Level.WARNING, e, () -> "Failed to access to " + endpoint);
         }
         return Collections.emptyMap();
     }
 
-    public void insert(String namespace, String docType, String id, Map<String, Object> data) {
-        Map<String, Object> flattenedMap = new HashMap<>();
-        flattenMap("", data, flattenedMap);
+    public Map<String, Object> insert(final String namespace, final String docType, final String id, final Map<String, Object> data) {
+        final Map<String, Object> fieldMap = new HashMap<>();
+        flattenMap("", data, fieldMap);
 
-        CurlResponse response = Curl.post(endpoint + "document/v1/" + namespace + "/" + docType + "/docid/" + id)
-                .header("Content-Type", "application/json").execute();
+        try (CurlResponse response = Curl.post(endpoint + "document/v1/" + namespace + "/" + docType + "/docid/" + id)
+                .header("Content-Type", "application/json").onConnect((req, con) -> {
+                    con.setDoOutput(true);
+                    try (XContentBuilder builder = new XContentBuilder(JsonXContent.jsonXContent, con.getOutputStream())) {
+                        final Map<String, Object> obj = new HashMap<>();
+                        obj.put("fields", fieldMap);
+                        builder.value(obj);
+                    } catch (final IOException e) {
+                        throw new IORuntimeException(e);
+                    }
+                }).execute()) {
+            if (response.getHttpStatusCode() == 200) {
+                return response.getContent(PARSER);
+            }
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] Failed to insert a doc. The response is "
+                    + response.getHttpStatusCode());
+        } catch (final Exception e) {
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] Failed to insert a doc.", e);
+        }
     }
 
-    private void flattenMap(String currentPath, Map<String, Object> map, Map<String, Object> flattenedMap) {
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
+    private void flattenMap(final String currentPath, final Map<String, Object> map, final Map<String, Object> flattenedMap) {
+        for (final Map.Entry<String, Object> entry : map.entrySet()) {
+            final String key = entry.getKey();
+            final Object value = entry.getValue();
 
-            String newPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+            final String newPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
             // TODO List
             if (value instanceof Map<?, ?>) {
@@ -70,6 +90,32 @@ public class VespaClient {
             } else {
                 flattenedMap.put(newPath, value);
             }
+        }
+    }
+
+    public Map<String, Object> get(final String namespace, final String docType, final String id) {
+        try (CurlResponse response = Curl.get(endpoint + "document/v1/" + namespace + "/" + docType + "/docid/" + id)
+                .header("Content-Type", "application/json").execute()) {
+            if (response.getHttpStatusCode() == 200) {
+                return response.getContent(PARSER);
+            }
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] The doc is not found. The response is "
+                    + response.getHttpStatusCode());
+        } catch (final Exception e) {
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] Failed to get the doc.", e);
+        }
+    }
+
+    public Map<String, Object> delete(final String namespace, final String docType, final String id) {
+        try (CurlResponse response = Curl.delete(endpoint + "document/v1/" + namespace + "/" + docType + "/docid/" + id)
+                .header("Content-Type", "application/json").execute()) {
+            if (response.getHttpStatusCode() == 200) {
+                return response.getContent(PARSER);
+            }
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] Failed to delete the doc. The response is "
+                    + response.getHttpStatusCode());
+        } catch (final Exception e) {
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] Failed to delete the doc.", e);
         }
     }
 

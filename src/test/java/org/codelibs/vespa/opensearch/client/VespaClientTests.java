@@ -1,5 +1,6 @@
 package org.codelibs.vespa.opensearch.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
@@ -138,9 +139,46 @@ public class VespaClientTests {
     }
 
     @Test
-    public void testGetRoot() {
+    void testGetRoot() {
         Map<String, Object> info = client.getInfo();
-
         assertNotNull(info);
+    }
+
+    @Test
+    void testDataOperations() {
+        String namespace = "codelibs";
+        String docType = "doc";
+        String docId = "blog-1";
+        String title = "Exploring the Beauty of Nature";
+        String content =
+                "Nature has always been a source of solace and inspiration for many. From the majestic mountains to the serene beaches, nature offers a retreat from the hustle and bustle of everyday life...";
+
+        {
+            Map<String, Object> response = client.insert(namespace, docType, docId, Map.of(//
+                    "doc_id", docId, //
+                    "title", title, //
+                    "content", content));
+            assertNotNull(response);
+            assertEquals("id:codelibs:doc::blog-1", response.get("id"));
+            assertEquals("/document/v1/codelibs/doc/docid/blog-1", response.get("pathId"));
+        }
+
+        {
+            Map<String, Object> response = client.get(namespace, docType, docId);
+            assertNotNull(response);
+            assertEquals("id:codelibs:doc::blog-1", response.get("id"));
+            assertEquals("/document/v1/codelibs/doc/docid/blog-1", response.get("pathId"));
+            Map<String, Object> fields = (Map<String, Object>) response.get("fields");
+            assertEquals(docId, fields.get("doc_id"));
+            assertEquals(title, fields.get("title"));
+            assertEquals(content, fields.get("content"));
+        }
+
+        {
+            Map<String, Object> response = client.delete(namespace, docType, docId);
+            assertNotNull(response);
+            assertEquals("id:codelibs:doc::blog-1", response.get("id"));
+            assertEquals("/document/v1/codelibs/doc/docid/blog-1", response.get("pathId"));
+        }
     }
 }

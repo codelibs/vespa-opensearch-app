@@ -8,7 +8,7 @@ import com.yahoo.jdisc.http.HttpRequest.Method;
 
 public class IndexAction extends HttpAction {
 
-    public IndexAction(RestApiProxyHandler handler) {
+    public IndexAction(final RestApiProxyHandler handler) {
         super(handler);
     }
 
@@ -29,20 +29,14 @@ public class IndexAction extends HttpAction {
                     return paths[1];
                 }
             } else if (paths.length == 4) {
-                if ("_doc".equals(paths[2]) && paths[3].length() == 0) {
-                    return paths[1];
-                }
-                if ("_create".equals(paths[2]) && paths[3].length() > 0) {
+                if (("_doc".equals(paths[2]) && paths[3].length() == 0) || ("_create".equals(paths[2]) && paths[3].length() > 0)) {
                     return paths[1];
                 }
             }
             break;
         case PUT:
             if (paths.length == 4) {
-                if ("_doc".equals(paths[2]) && paths[3].length() > 0) {
-                    return paths[1];
-                }
-                if ("_create".equals(paths[2]) && paths[3].length() > 0) {
+                if (("_doc".equals(paths[2]) && paths[3].length() > 0) || ("_create".equals(paths[2]) && paths[3].length() > 0)) {
                     return paths[1];
                 }
             }
@@ -54,7 +48,7 @@ public class IndexAction extends HttpAction {
     }
 
     @Override
-    public HttpResponse execute(HttpRequest httpRequest) {
+    public HttpResponse execute(final HttpRequest httpRequest) {
         // TODO Auto-generated method stub
         return null;
     }

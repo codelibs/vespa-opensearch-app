@@ -12,7 +12,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<test.hide>true</test.hide>
 		<junit.version>5.10.0</junit.version>
-		<vespa_version>8.256.22</vespa_version>
+		<vespa.version>8.263.7</vespa.version>
 		<testcontainers.version>1.19.1</testcontainers.version>
 	</properties>
 
@@ -20,7 +20,7 @@
 		<dependency>
 			<groupId>com.yahoo.vespa</groupId>
 			<artifactId>container</artifactId>
-			<version>${vespa_version}</version>
+			<version>${vespa.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -41,7 +41,7 @@
 		<dependency>
 			<groupId>com.yahoo.vespa</groupId>
 			<artifactId>container-test</artifactId>
-			<version>${vespa_version}</version>
+			<version>${vespa.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -96,7 +96,7 @@
 				<!-- Zip the application package -->
 				<groupId>com.yahoo.vespa</groupId>
 				<artifactId>vespa-application-maven-plugin</artifactId>
-				<version>${vespa_version}</version>
+				<version>${vespa.version}</version>
 				<executions>
 					<execution>
 						<goals>
@@ -108,7 +108,7 @@
 			<plugin>
 				<groupId>com.yahoo.vespa</groupId>
 				<artifactId>bundle-plugin</artifactId>
-				<version>${vespa_version}</version>
+				<version>${vespa.version}</version>
 				<extensions>true</extensions>
 			</plugin>
 			<plugin>
@@ -118,7 +118,7 @@
 				<configuration>
 					<allowMajorUpdates>false</allowMajorUpdates>
 					<generateBackupPoms>false</generateBackupPoms>
-					<includeProperties>vespa_version</includeProperties>
+					<includeProperties>vespa.version</includeProperties>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -133,7 +133,7 @@
 						</goals>
 						<configuration>
 							<target>
-								<echo>[Vespa version: ] ${vespa_version}</echo>
+								<echo>[Vespa version: ] ${vespa.version}</echo>
 							</target>
 						</configuration>
 					</execution>
