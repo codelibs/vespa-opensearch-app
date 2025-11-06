@@ -8,9 +8,16 @@ import java.util.concurrent.Executor;
 import java.util.logging.Level;
 
 import org.codelibs.core.lang.StringUtil;
+import org.codelibs.vespa.opensearch.action.BulkAction;
+import org.codelibs.vespa.opensearch.action.CatIndicesAction;
+import org.codelibs.vespa.opensearch.action.ClusterHealthAction;
+import org.codelibs.vespa.opensearch.action.ClusterStateAction;
+import org.codelibs.vespa.opensearch.action.DocumentAction;
 import org.codelibs.vespa.opensearch.action.HttpAction;
-import org.codelibs.vespa.opensearch.action.IndexAction;
+import org.codelibs.vespa.opensearch.action.IndicesAction;
+import org.codelibs.vespa.opensearch.action.MappingAction;
 import org.codelibs.vespa.opensearch.action.RootAction;
+import org.codelibs.vespa.opensearch.action.SettingsAction;
 import org.codelibs.vespa.opensearch.client.VespaClient;
 import org.codelibs.vespa.opensearch.config.ProxyHandlerConfig;
 import org.codelibs.vespa.opensearch.exception.IncorrectHttpMethodException;
@@ -43,9 +50,14 @@ public class RestApiProxyHandler extends ThreadedHttpRequestHandler {
         client = new VespaClient(config.vespaEndpoint());
 
         actions = ImmutableMap.<Method, HttpAction[]> builder()//
-                .put(Method.GET, new HttpAction[] { new RootAction(this) })//
-                .put(Method.POST, new HttpAction[] { new IndexAction(this) })//
-                .put(Method.PUT, new HttpAction[] { new IndexAction(this) })//
+                .put(Method.GET, new HttpAction[] { new RootAction(this), new ClusterHealthAction(this), new ClusterStateAction(this),
+                        new CatIndicesAction(this), new IndicesAction(this), new MappingAction(this), new SettingsAction(this),
+                        new DocumentAction(this) })//
+                .put(Method.POST, new HttpAction[] { new BulkAction(this), new DocumentAction(this) })//
+                .put(Method.PUT, new HttpAction[] { new BulkAction(this), new IndicesAction(this), new MappingAction(this),
+                        new SettingsAction(this), new DocumentAction(this) })//
+                .put(Method.DELETE, new HttpAction[] { new IndicesAction(this), new DocumentAction(this) })//
+                .put(Method.HEAD, new HttpAction[] { new IndicesAction(this) })//
                 .build();
     }
 
@@ -73,6 +85,14 @@ public class RestApiProxyHandler extends ThreadedHttpRequestHandler {
             return "/";
         }
         return path.substring(pathPrefix.length());
+    }
+
+    public VespaClient getVespaClient() {
+        return client;
+    }
+
+    public String getDocumentType() {
+        return documentType;
     }
 
     private HttpResponse handleException(final HttpRequest httpRequest, final int status, final Exception e) {

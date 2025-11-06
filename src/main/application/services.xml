@@ -8,8 +8,8 @@
 			<binding>http://*/opensearch/*</binding>
 			<binding>http://*/opensearch</binding>
 			<config name="org.codelibs.vespa.opensearch.config.proxy-handler">
-				<vespaHostName>localhost</vespaHostName>
-				<vespaHostPort>8080</vespaHostPort>
+				<vespaEndpoint>http://localhost:8080</vespaEndpoint>
+				<documentType>doc</documentType>
 				<pathPrefix>/opensearch</pathPrefix>
 			</config>
 		</handler>
