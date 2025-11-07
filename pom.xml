@@ -6,15 +6,29 @@
 	<groupId>org.codelibs.vespa.opensearch</groupId>
 	<artifactId>vespa-opensearch-app</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
-	<packaging>container-plugin</packaging>  <!-- Use Vespa packaging -->
+	<packaging>jar</packaging>  <!-- Use jar for testing; change to container-plugin for Vespa deployment -->
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<test.hide>true</test.hide>
 		<junit.version>5.10.0</junit.version>
-		<vespa.version>8.263.7</vespa.version>
+		<vespa.version>8.256.22</vespa.version>
 		<testcontainers.version>1.19.1</testcontainers.version>
 	</properties>
+
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+		</pluginRepository>
+	</pluginRepositories>
 
 	<dependencies>
 		<dependency>
@@ -48,6 +62,24 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>5.5.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-junit-jupiter</artifactId>
+			<version>5.5.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.15.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -92,8 +124,9 @@
 					<redirectTestOutputToFile>${test.hide}</redirectTestOutputToFile>
 				</configuration>
 			</plugin>
+			<!-- Vespa plugins - uncomment for container-plugin packaging -->
+			<!--
 			<plugin>
-				<!-- Zip the application package -->
 				<groupId>com.yahoo.vespa</groupId>
 				<artifactId>vespa-application-maven-plugin</artifactId>
 				<version>${vespa.version}</version>
@@ -111,6 +144,7 @@
 				<version>${vespa.version}</version>
 				<extensions>true</extensions>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
@@ -121,8 +155,9 @@
 					<includeProperties>vespa.version</includeProperties>
 				</configuration>
 			</plugin>
+			<!-- For debugging only - commented out to avoid dependency issues -->
+			<!--
 			<plugin>
-				<!-- For debugging only -->
 				<artifactId>maven-antrun-plugin</artifactId>
 				<version>3.1.0</version>
 				<executions>
@@ -139,6 +174,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
 		</plugins>
 	</build>
 </project>
