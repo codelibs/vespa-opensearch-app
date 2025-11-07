@@ -28,7 +28,13 @@ public class VespaClient {
 
     private final String endpoint;
 
-    // In-memory index metadata storage (since Vespa schemas are static)
+    /**
+     * In-memory index metadata storage (since Vespa schemas are static).
+     * WARNING: This data is stored only in memory and will be lost on application restart.
+     * It is NOT persisted to Vespa or any external storage.
+     * For production deployments, ensure that loss of index metadata on restart is acceptable,
+     * or implement a persistence mechanism if required.
+     */
     private final Map<String, Map<String, Object>> indexMetadata = new ConcurrentHashMap<>();
 
     protected static final Function<CurlResponse, Map<String, Object>> PARSER = response -> {
@@ -598,7 +604,20 @@ public class VespaClient {
 
         final Map<String, Object> hits = new HashMap<>();
         final Map<String, Object> root = (Map<String, Object>) vespaResult.get("root");
-        final int totalCount = root != null ? (Integer) root.getOrDefault("coverage", Map.of("documents", 0)) : 0;
+        int totalCount = 0;
+        if (root != null) {
+            final Map<String, Object> coverage = (Map<String, Object>) root.getOrDefault("coverage", Map.of("documents", 0));
+            final Object documentsObj = coverage.getOrDefault("documents", 0);
+            if (documentsObj instanceof Number) {
+                totalCount = ((Number) documentsObj).intValue();
+            } else {
+                try {
+                    totalCount = Integer.parseInt(documentsObj.toString());
+                } catch (final NumberFormatException e) {
+                    totalCount = 0;
+                }
+            }
+        }
 
         final Map<String, Object> total = new HashMap<>();
         total.put("value", totalCount);

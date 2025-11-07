@@ -19,7 +19,8 @@ public class ClusterHealthAction extends HttpAction {
         // GET /_cluster/health
         // GET /_cluster/health/<index>
         if (method == Method.GET && paths.length >= 2 && "_cluster".equals(paths[1])) {
-            return "health".equals(paths[2]) || (paths.length == 2 && "health".equals(paths[2]));
+            // Match /_cluster/health or /_cluster/health/<index>
+            return paths.length >= 3 && "health".equals(paths[2]);
         }
         return false;
     }

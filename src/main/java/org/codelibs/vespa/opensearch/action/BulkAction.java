@@ -78,11 +78,13 @@ public class BulkAction extends HttpAction {
                     action = JsonXContent.jsonXContent
                             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, line).map();
 
-                    // Check if this is a delete action (doesn't have document body)
-                    if (action.containsKey("delete")) {
-                        expectingAction = true; // Next line is another action
-                    } else {
+                    // Check if this action requires a document body on the next line
+                    // delete actions don't have a document body, so next line is another action
+                    // index/create/update actions require a document body on the next line
+                    if (requiresDocumentBody(action)) {
                         expectingAction = false; // Next line is document body
+                    } else {
+                        expectingAction = true; // Next line is another action (for delete)
                     }
                 } else {
                     // Document line
@@ -226,6 +228,19 @@ public class BulkAction extends HttpAction {
             }
         }
         return false;
+    }
+
+    /**
+     * Checks if the given action type requires a document body on the next line.
+     *
+     * @param action the action map containing the action type
+     * @return true if the action requires a document body (index, create, update),
+     *         false if it doesn't (delete)
+     */
+    private boolean requiresDocumentBody(final Map<String, Object> action) {
+        // Only delete actions don't require a document body
+        // index, create, and update all require a document body
+        return action.containsKey("index") || action.containsKey("create") || action.containsKey("update");
     }
 
 }
