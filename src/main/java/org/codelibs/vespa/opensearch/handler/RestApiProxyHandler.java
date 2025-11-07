@@ -12,12 +12,17 @@ import org.codelibs.vespa.opensearch.action.BulkAction;
 import org.codelibs.vespa.opensearch.action.CatIndicesAction;
 import org.codelibs.vespa.opensearch.action.ClusterHealthAction;
 import org.codelibs.vespa.opensearch.action.ClusterStateAction;
+import org.codelibs.vespa.opensearch.action.CountAction;
 import org.codelibs.vespa.opensearch.action.DocumentAction;
 import org.codelibs.vespa.opensearch.action.HttpAction;
 import org.codelibs.vespa.opensearch.action.IndicesAction;
 import org.codelibs.vespa.opensearch.action.MappingAction;
+import org.codelibs.vespa.opensearch.action.MgetAction;
+import org.codelibs.vespa.opensearch.action.RefreshAction;
 import org.codelibs.vespa.opensearch.action.RootAction;
+import org.codelibs.vespa.opensearch.action.SearchAction;
 import org.codelibs.vespa.opensearch.action.SettingsAction;
+import org.codelibs.vespa.opensearch.action.UpdateAction;
 import org.codelibs.vespa.opensearch.client.VespaClient;
 import org.codelibs.vespa.opensearch.config.ProxyHandlerConfig;
 import org.codelibs.vespa.opensearch.exception.IncorrectHttpMethodException;
@@ -51,9 +56,10 @@ public class RestApiProxyHandler extends ThreadedHttpRequestHandler {
 
         actions = ImmutableMap.<Method, HttpAction[]> builder()//
                 .put(Method.GET, new HttpAction[] { new RootAction(this), new ClusterHealthAction(this), new ClusterStateAction(this),
-                        new CatIndicesAction(this), new IndicesAction(this), new MappingAction(this), new SettingsAction(this),
-                        new DocumentAction(this) })//
-                .put(Method.POST, new HttpAction[] { new BulkAction(this), new DocumentAction(this) })//
+                        new CatIndicesAction(this), new SearchAction(this), new CountAction(this), new MgetAction(this),
+                        new IndicesAction(this), new MappingAction(this), new SettingsAction(this), new DocumentAction(this) })//
+                .put(Method.POST, new HttpAction[] { new BulkAction(this), new SearchAction(this), new CountAction(this),
+                        new MgetAction(this), new UpdateAction(this), new RefreshAction(this), new DocumentAction(this) })//
                 .put(Method.PUT, new HttpAction[] { new BulkAction(this), new IndicesAction(this), new MappingAction(this),
                         new SettingsAction(this), new DocumentAction(this) })//
                 .put(Method.DELETE, new HttpAction[] { new IndicesAction(this), new DocumentAction(this) })//

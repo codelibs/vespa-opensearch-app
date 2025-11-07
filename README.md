@@ -26,6 +26,15 @@ The proxy translates OpenSearch API requests into Vespa operations, providing co
 ### Bulk Operations
 - **Bulk API**: `POST /_bulk` or `POST /<index>/_bulk` - Perform multiple index/create/update/delete operations in a single request
 
+### Search Operations
+- **Search**: `GET/POST /<index>/_search` or `GET/POST /_search` - Search for documents using OpenSearch query DSL
+- **Count**: `GET/POST /<index>/_count` or `GET/POST /_count` - Count documents matching a query
+- **Multi Get**: `GET/POST /<index>/_mget` or `GET/POST /_mget` - Retrieve multiple documents by IDs
+
+### Advanced Document Operations
+- **Partial Update**: `POST /<index>/_update/<id>` - Update specific fields of a document
+- **Refresh**: `POST /<index>/_refresh` or `POST /_refresh` - Refresh the index (no-op for Vespa, returns success)
+
 ### Cluster Information
 - **Cluster Health**: `GET /_cluster/health` - Get cluster health status
 - **Cluster State**: `GET /_cluster/state` - Get cluster state information
@@ -53,6 +62,11 @@ The application consists of several key components:
   - `SettingsAction`: Index settings operations
   - `BulkAction`: Bulk operations
   - `CatIndicesAction`: Indices listing
+  - `SearchAction`: Search operations
+  - `CountAction`: Document count operations
+  - `MgetAction`: Multi-document get operations
+  - `UpdateAction`: Partial document updates
+  - `RefreshAction`: Index refresh operations
 
 ## Usage
 
@@ -130,6 +144,52 @@ curl -X POST "localhost:8080/opensearch/_bulk" -H 'Content-Type: application/jso
 curl -X GET "localhost:8080/opensearch/_cluster/health"
 ```
 
+#### Search for documents
+```bash
+curl -X POST "localhost:8080/opensearch/myindex/_search" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match": {
+      "title": "Hello"
+    }
+  },
+  "size": 10
+}'
+```
+
+#### Count documents
+```bash
+curl -X GET "localhost:8080/opensearch/myindex/_count" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match_all": {}
+  }
+}'
+```
+
+#### Get multiple documents
+```bash
+curl -X POST "localhost:8080/opensearch/myindex/_mget" -H 'Content-Type: application/json' -d'
+{
+  "ids": ["1", "2", "3"]
+}'
+```
+
+#### Partial update
+```bash
+curl -X POST "localhost:8080/opensearch/myindex/_update/1" -H 'Content-Type: application/json' -d'
+{
+  "doc": {
+    "title": "Updated Title"
+  }
+}'
+```
+
+#### Refresh index
+```bash
+curl -X POST "localhost:8080/opensearch/myindex/_refresh"
+```
+
 ## Testing
 
 The project includes comprehensive unit and integration tests:
@@ -164,8 +224,8 @@ The application can be configured through `services.xml`:
 ## Limitations
 
 - Index metadata (settings, mappings) is stored in-memory as Vespa schemas are static
-- Search operations are not yet implemented (coming soon)
-- Some advanced OpenSearch features may not be fully supported
+- Search query translation supports basic queries (match_all, match, term) - complex query DSL features are not yet fully supported
+- Some advanced OpenSearch features may not be fully supported (e.g., aggregations, suggesters, percolate queries)
 
 ## License
 

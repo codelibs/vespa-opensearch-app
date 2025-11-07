@@ -279,4 +279,181 @@ public class VespaClient {
         return result;
     }
 
+    // Search operations
+    public Map<String, Object> search(final String namespace, final String docType, final Map<String, Object> searchRequest) {
+        try {
+            // Extract query parameters
+            final String yql = buildYqlFromOpenSearchQuery(searchRequest);
+            final int size = searchRequest.containsKey("size") ? (Integer) searchRequest.get("size") : 10;
+            final int from = searchRequest.containsKey("from") ? (Integer) searchRequest.get("from") : 0;
+
+            final StringBuilder url = new StringBuilder(endpoint).append("search/?");
+            url.append("yql=").append(java.net.URLEncoder.encode(yql, "UTF-8"));
+            url.append("&hits=").append(size);
+            url.append("&offset=").append(from);
+
+            try (CurlResponse response = Curl.get(url.toString()).header("Content-Type", "application/json").execute()) {
+                if (response.getHttpStatusCode() == 200) {
+                    final Map<String, Object> vespaResult = response.getContent(PARSER);
+                    return convertVespaSearchToOpenSearch(vespaResult);
+                }
+                throw new VespaClientException("Search failed with status: " + response.getHttpStatusCode());
+            }
+        } catch (final Exception e) {
+            throw new VespaClientException("Failed to execute search", e);
+        }
+    }
+
+    private String buildYqlFromOpenSearchQuery(final Map<String, Object> searchRequest) {
+        // Simple implementation - build YQL from OpenSearch query
+        if (searchRequest.containsKey("query")) {
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> query = (Map<String, Object>) searchRequest.get("query");
+
+            if (query.containsKey("match_all")) {
+                return "select * from sources * where true";
+            } else if (query.containsKey("match")) {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> match = (Map<String, Object>) query.get("match");
+                final String field = match.keySet().iterator().next();
+                final Object value = match.get(field);
+                final String searchValue = value instanceof Map ? ((Map<?, ?>) value).get("query").toString() : value.toString();
+                return "select * from sources * where " + field + " contains \"" + searchValue + "\"";
+            } else if (query.containsKey("term")) {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> term = (Map<String, Object>) query.get("term");
+                final String field = term.keySet().iterator().next();
+                final Object value = term.get(field);
+                final String termValue = value instanceof Map ? ((Map<?, ?>) value).get("value").toString() : value.toString();
+                return "select * from sources * where " + field + " contains \"" + termValue + "\"";
+            }
+        }
+        // Default query
+        return "select * from sources * where true";
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> convertVespaSearchToOpenSearch(final Map<String, Object> vespaResult) {
+        final Map<String, Object> result = new HashMap<>();
+        result.put("took", vespaResult.getOrDefault("timing", Map.of("searchtime", 0)));
+        result.put("timed_out", false);
+
+        final Map<String, Object> shards = new HashMap<>();
+        shards.put("total", 1);
+        shards.put("successful", 1);
+        shards.put("skipped", 0);
+        shards.put("failed", 0);
+        result.put("_shards", shards);
+
+        final Map<String, Object> hits = new HashMap<>();
+        final Map<String, Object> root = (Map<String, Object>) vespaResult.get("root");
+        final int totalCount = root != null ? (Integer) root.getOrDefault("coverage", Map.of("documents", 0)) : 0;
+
+        final Map<String, Object> total = new HashMap<>();
+        total.put("value", totalCount);
+        total.put("relation", "eq");
+        hits.put("total", total);
+        hits.put("max_score", 1.0);
+
+        final java.util.List<Map<String, Object>> hitList = new java.util.ArrayList<>();
+        if (root != null && root.containsKey("children")) {
+            final java.util.List<Map<String, Object>> children = (java.util.List<Map<String, Object>>) root.get("children");
+            for (final Map<String, Object> child : children) {
+                final Map<String, Object> hit = new HashMap<>();
+                hit.put("_index", "default");
+                hit.put("_id", child.get("id"));
+                hit.put("_score", child.getOrDefault("relevance", 1.0));
+                hit.put("_source", child.get("fields"));
+                hitList.add(hit);
+            }
+        }
+        hits.put("hits", hitList);
+        result.put("hits", hits);
+
+        return result;
+    }
+
+    public Map<String, Object> count(final String namespace, final String docType, final Map<String, Object> query) {
+        try {
+            final String yql = query != null ? buildYqlFromOpenSearchQuery(query) : "select * from sources * where true";
+            final String url = endpoint + "search/?yql=" + java.net.URLEncoder.encode(yql, "UTF-8") + "&hits=0";
+
+            try (CurlResponse response = Curl.get(url).header("Content-Type", "application/json").execute()) {
+                if (response.getHttpStatusCode() == 200) {
+                    final Map<String, Object> vespaResult = response.getContent(PARSER);
+                    @SuppressWarnings("unchecked")
+                    final Map<String, Object> root = (Map<String, Object>) vespaResult.get("root");
+                    @SuppressWarnings("unchecked")
+                    final Map<String, Object> coverage = root != null ? (Map<String, Object>) root.get("coverage") : new HashMap<>();
+                    final int count = coverage != null ? (Integer) coverage.getOrDefault("documents", 0) : 0;
+
+                    final Map<String, Object> result = new HashMap<>();
+                    result.put("count", count);
+                    result.put("_shards", Map.of("total", 1, "successful", 1, "skipped", 0, "failed", 0));
+                    return result;
+                }
+                throw new VespaClientException("Count failed with status: " + response.getHttpStatusCode());
+            }
+        } catch (final Exception e) {
+            throw new VespaClientException("Failed to execute count", e);
+        }
+    }
+
+    public Map<String, Object> multiGet(final String namespace, final String docType, final List<String> ids) {
+        final Map<String, Object> result = new HashMap<>();
+        final java.util.List<Map<String, Object>> docs = new java.util.ArrayList<>();
+
+        for (final String id : ids) {
+            try {
+                final Map<String, Object> doc = get(namespace, docType, id);
+                final Map<String, Object> docResult = new HashMap<>();
+                docResult.put("_index", namespace);
+                docResult.put("_id", id);
+                docResult.put("_version", 1);
+                docResult.put("found", true);
+                docResult.put("_source", doc.get("fields"));
+                docs.add(docResult);
+            } catch (final VespaClientException e) {
+                final Map<String, Object> docResult = new HashMap<>();
+                docResult.put("_index", namespace);
+                docResult.put("_id", id);
+                docResult.put("found", false);
+                docs.add(docResult);
+            }
+        }
+
+        result.put("docs", docs);
+        return result;
+    }
+
+    public Map<String, Object> partialUpdate(final String namespace, final String docType, final String id,
+            final Map<String, Object> partialDoc) {
+        // For partial updates, we need to get the existing document, merge, and update
+        try {
+            final Map<String, Object> existing = get(namespace, docType, id);
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> existingFields = (Map<String, Object>) existing.get("fields");
+
+            // Merge with partial document
+            if (partialDoc.containsKey("doc")) {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> doc = (Map<String, Object>) partialDoc.get("doc");
+                existingFields.putAll(doc);
+            } else {
+                existingFields.putAll(partialDoc);
+            }
+
+            return update(namespace, docType, id, existingFields);
+        } catch (final Exception e) {
+            throw new VespaClientException("[" + namespace + "][" + docType + "][" + id + "] Failed to partial update.", e);
+        }
+    }
+
+    public Map<String, Object> refresh(final String indexName) {
+        // Vespa doesn't have a direct refresh concept, but we can return success
+        final Map<String, Object> result = new HashMap<>();
+        result.put("_shards", Map.of("total", 1, "successful", 1, "failed", 0));
+        return result;
+    }
+
 }
