@@ -221,11 +221,96 @@ The application can be configured through `services.xml`:
 </config>
 ```
 
+## Supported Query DSL
+
+The application supports comprehensive OpenSearch Query DSL translation to Vespa YQL:
+
+### Supported Query Types
+
+**Full Text Queries:**
+- `match` - Full text search with tokenization
+- `match_phrase` - Phrase matching
+- `multi_match` - Search across multiple fields
+- `query_string` - Query string syntax (basic support)
+
+**Term-Level Queries:**
+- `term` - Exact term matching
+- `terms` - Match any of multiple terms
+- `range` - Numeric/date range queries (gt, gte, lt, lte)
+- `exists` - Field existence check
+- `prefix` - Prefix matching
+- `wildcard` - Wildcard pattern matching
+- `ids` - Match documents by IDs
+
+**Compound Queries:**
+- `bool` - Boolean query with must, should, must_not, and filter clauses
+  - `must` - All clauses must match (AND)
+  - `should` - At least one clause should match (OR)
+  - `must_not` - Clauses must not match (NOT)
+  - `filter` - Clauses must match (like must, without scoring)
+
+**Special Features:**
+- Proper escaping for security (prevents YQL injection)
+- Nested boolean queries support
+- Complex query combinations
+
+### Query Examples
+
+```json
+// Bool query with multiple clauses
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "title": "search" } }
+      ],
+      "should": [
+        { "match": { "content": "vespa" } },
+        { "match": { "description": "engine" } }
+      ],
+      "must_not": [
+        { "term": { "status": "deleted" } }
+      ],
+      "filter": [
+        { "range": { "created_at": { "gte": "2024-01-01" } } }
+      ]
+    }
+  }
+}
+
+// Range query
+{
+  "query": {
+    "range": {
+      "age": {
+        "gte": 18,
+        "lte": 65
+      }
+    }
+  }
+}
+
+// Multi-match query
+{
+  "query": {
+    "multi_match": {
+      "query": "search engine",
+      "fields": ["title", "content", "description"]
+    }
+  }
+}
+```
+
 ## Limitations
 
 - Index metadata (settings, mappings) is stored in-memory as Vespa schemas are static
-- Search query translation supports basic queries (match_all, match, term) - complex query DSL features are not yet fully supported
-- Some advanced OpenSearch features may not be fully supported (e.g., aggregations, suggesters, percolate queries)
+- Some advanced OpenSearch features are not yet fully supported:
+  - Aggregations (coming soon)
+  - Suggesters
+  - Percolate queries
+  - Scripting
+  - Nested/Parent-child documents
+  - Advanced query string syntax (partial support only)
 
 ## License
 

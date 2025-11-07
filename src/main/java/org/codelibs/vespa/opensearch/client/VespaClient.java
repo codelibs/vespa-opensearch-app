@@ -305,31 +305,282 @@ public class VespaClient {
     }
 
     private String buildYqlFromOpenSearchQuery(final Map<String, Object> searchRequest) {
-        // Simple implementation - build YQL from OpenSearch query
         if (searchRequest.containsKey("query")) {
             @SuppressWarnings("unchecked")
             final Map<String, Object> query = (Map<String, Object>) searchRequest.get("query");
+            final String condition = buildConditionFromQuery(query);
+            return "select * from sources * where " + condition;
+        }
+        return "select * from sources * where true";
+    }
 
-            if (query.containsKey("match_all")) {
-                return "select * from sources * where true";
-            } else if (query.containsKey("match")) {
+    private String buildConditionFromQuery(final Map<String, Object> query) {
+        if (query == null || query.isEmpty()) {
+            return "true";
+        }
+
+        if (query.containsKey("match_all")) {
+            return "true";
+        }
+        if (query.containsKey("match")) {
+            return buildMatchQuery(query.get("match"));
+        }
+        if (query.containsKey("match_phrase")) {
+            return buildMatchPhraseQuery(query.get("match_phrase"));
+        }
+        if (query.containsKey("multi_match")) {
+            return buildMultiMatchQuery(query.get("multi_match"));
+        }
+        if (query.containsKey("term")) {
+            return buildTermQuery(query.get("term"));
+        }
+        if (query.containsKey("terms")) {
+            return buildTermsQuery(query.get("terms"));
+        }
+        if (query.containsKey("range")) {
+            return buildRangeQuery(query.get("range"));
+        }
+        if (query.containsKey("exists")) {
+            return buildExistsQuery(query.get("exists"));
+        }
+        if (query.containsKey("prefix")) {
+            return buildPrefixQuery(query.get("prefix"));
+        }
+        if (query.containsKey("wildcard")) {
+            return buildWildcardQuery(query.get("wildcard"));
+        }
+        if (query.containsKey("bool")) {
+            return buildBoolQuery(query.get("bool"));
+        }
+        if (query.containsKey("ids")) {
+            return buildIdsQuery(query.get("ids"));
+        }
+        if (query.containsKey("query_string")) {
+            return buildQueryStringQuery(query.get("query_string"));
+        }
+        return "true";
+    }
+
+    private String buildMatchQuery(final Object matchObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> match = (Map<String, Object>) matchObj;
+        final String field = match.keySet().iterator().next();
+        final Object value = match.get(field);
+        final String searchValue = value instanceof Map ? ((Map<?, ?>) value).get("query").toString() : value.toString();
+        return field + " contains \"" + escapeYqlString(searchValue) + "\"";
+    }
+
+    private String buildMatchPhraseQuery(final Object matchPhraseObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> matchPhrase = (Map<String, Object>) matchPhraseObj;
+        final String field = matchPhrase.keySet().iterator().next();
+        final Object value = matchPhrase.get(field);
+        final String phraseValue = value instanceof Map ? ((Map<?, ?>) value).get("query").toString() : value.toString();
+        return field + " contains phrase(\"" + escapeYqlString(phraseValue) + "\")";
+    }
+
+    private String buildMultiMatchQuery(final Object multiMatchObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> multiMatch = (Map<String, Object>) multiMatchObj;
+        final String queryValue = (String) multiMatch.get("query");
+        @SuppressWarnings("unchecked")
+        final java.util.List<String> fields = (java.util.List<String>) multiMatch.get("fields");
+        if (fields == null || fields.isEmpty()) {
+            return "true";
+        }
+        final java.util.List<String> conditions = new java.util.ArrayList<>();
+        for (final String field : fields) {
+            conditions.add(field + " contains \"" + escapeYqlString(queryValue) + "\"");
+        }
+        return "(" + String.join(" OR ", conditions) + ")";
+    }
+
+    private String buildTermQuery(final Object termObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> term = (Map<String, Object>) termObj;
+        final String field = term.keySet().iterator().next();
+        final Object value = term.get(field);
+        final String termValue = value instanceof Map ? ((Map<?, ?>) value).get("value").toString() : value.toString();
+        return field + " matches \"" + escapeYqlString(termValue) + "\"";
+    }
+
+    private String buildTermsQuery(final Object termsObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> terms = (Map<String, Object>) termsObj;
+        final String field = terms.keySet().iterator().next();
+        @SuppressWarnings("unchecked")
+        final java.util.List<Object> values = (java.util.List<Object>) terms.get(field);
+        if (values == null || values.isEmpty()) {
+            return "false";
+        }
+        final java.util.List<String> conditions = new java.util.ArrayList<>();
+        for (final Object value : values) {
+            conditions.add(field + " matches \"" + escapeYqlString(value.toString()) + "\"");
+        }
+        return "(" + String.join(" OR ", conditions) + ")";
+    }
+
+    private String buildRangeQuery(final Object rangeObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> range = (Map<String, Object>) rangeObj;
+        final String field = range.keySet().iterator().next();
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> conditions = (Map<String, Object>) range.get(field);
+        final java.util.List<String> rangeParts = new java.util.ArrayList<>();
+        if (conditions.containsKey("gte")) {
+            rangeParts.add(field + " >= " + conditions.get("gte"));
+        } else if (conditions.containsKey("gt")) {
+            rangeParts.add(field + " > " + conditions.get("gt"));
+        }
+        if (conditions.containsKey("lte")) {
+            rangeParts.add(field + " <= " + conditions.get("lte"));
+        } else if (conditions.containsKey("lt")) {
+            rangeParts.add(field + " < " + conditions.get("lt"));
+        }
+        return rangeParts.isEmpty() ? "true" : "(" + String.join(" AND ", rangeParts) + ")";
+    }
+
+    private String buildExistsQuery(final Object existsObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> exists = (Map<String, Object>) existsObj;
+        final String field = (String) exists.get("field");
+        return "(" + field + " matches \"*\" OR " + field + " > 0 OR " + field + " < 0)";
+    }
+
+    private String buildPrefixQuery(final Object prefixObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> prefix = (Map<String, Object>) prefixObj;
+        final String field = prefix.keySet().iterator().next();
+        final Object value = prefix.get(field);
+        final String prefixValue = value instanceof Map ? ((Map<?, ?>) value).get("value").toString() : value.toString();
+        return field + " matches \"" + escapeYqlString(prefixValue) + "*\"";
+    }
+
+    private String buildWildcardQuery(final Object wildcardObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> wildcard = (Map<String, Object>) wildcardObj;
+        final String field = wildcard.keySet().iterator().next();
+        final Object value = wildcard.get(field);
+        final String wildcardValue = value instanceof Map ? ((Map<?, ?>) value).get("value").toString() : value.toString();
+        return field + " matches \"" + escapeYqlString(wildcardValue) + "\"";
+    }
+
+    private String buildBoolQuery(final Object boolObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> bool = (Map<String, Object>) boolObj;
+        final java.util.List<String> allConditions = new java.util.ArrayList<>();
+
+        if (bool.containsKey("must")) {
+            @SuppressWarnings("unchecked")
+            final Object mustObj = bool.get("must");
+            if (mustObj instanceof java.util.List) {
                 @SuppressWarnings("unchecked")
-                final Map<String, Object> match = (Map<String, Object>) query.get("match");
-                final String field = match.keySet().iterator().next();
-                final Object value = match.get(field);
-                final String searchValue = value instanceof Map ? ((Map<?, ?>) value).get("query").toString() : value.toString();
-                return "select * from sources * where " + field + " contains \"" + searchValue + "\"";
-            } else if (query.containsKey("term")) {
+                final java.util.List<Map<String, Object>> mustClauses = (java.util.List<Map<String, Object>>) mustObj;
+                final java.util.List<String> mustConditions = new java.util.ArrayList<>();
+                for (final Map<String, Object> clause : mustClauses) {
+                    mustConditions.add(buildConditionFromQuery(clause));
+                }
+                if (!mustConditions.isEmpty()) {
+                    allConditions.add("(" + String.join(" AND ", mustConditions) + ")");
+                }
+            } else {
                 @SuppressWarnings("unchecked")
-                final Map<String, Object> term = (Map<String, Object>) query.get("term");
-                final String field = term.keySet().iterator().next();
-                final Object value = term.get(field);
-                final String termValue = value instanceof Map ? ((Map<?, ?>) value).get("value").toString() : value.toString();
-                return "select * from sources * where " + field + " contains \"" + termValue + "\"";
+                final Map<String, Object> mustClause = (Map<String, Object>) mustObj;
+                allConditions.add("(" + buildConditionFromQuery(mustClause) + ")");
             }
         }
-        // Default query
-        return "select * from sources * where true";
+
+        if (bool.containsKey("filter")) {
+            final Object filter = bool.get("filter");
+            if (filter instanceof java.util.List) {
+                @SuppressWarnings("unchecked")
+                final java.util.List<Map<String, Object>> filterClauses = (java.util.List<Map<String, Object>>) filter;
+                final java.util.List<String> filterConditions = new java.util.ArrayList<>();
+                for (final Map<String, Object> clause : filterClauses) {
+                    filterConditions.add(buildConditionFromQuery(clause));
+                }
+                if (!filterConditions.isEmpty()) {
+                    allConditions.add("(" + String.join(" AND ", filterConditions) + ")");
+                }
+            } else {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> filterClause = (Map<String, Object>) filter;
+                allConditions.add("(" + buildConditionFromQuery(filterClause) + ")");
+            }
+        }
+
+        if (bool.containsKey("should")) {
+            @SuppressWarnings("unchecked")
+            final java.util.List<Map<String, Object>> shouldClauses = (java.util.List<Map<String, Object>>) bool.get("should");
+            final java.util.List<String> shouldConditions = new java.util.ArrayList<>();
+            for (final Map<String, Object> clause : shouldClauses) {
+                shouldConditions.add(buildConditionFromQuery(clause));
+            }
+            if (!shouldConditions.isEmpty()) {
+                if (allConditions.isEmpty()) {
+                    allConditions.add("(" + String.join(" OR ", shouldConditions) + ")");
+                } else {
+                    allConditions.add("(" + String.join(" OR ", shouldConditions) + ")");
+                }
+            }
+        }
+
+        if (bool.containsKey("must_not")) {
+            @SuppressWarnings("unchecked")
+            final Object mustNotObj = bool.get("must_not");
+            if (mustNotObj instanceof java.util.List) {
+                @SuppressWarnings("unchecked")
+                final java.util.List<Map<String, Object>> mustNotClauses = (java.util.List<Map<String, Object>>) mustNotObj;
+                for (final Map<String, Object> clause : mustNotClauses) {
+                    allConditions.add("!(" + buildConditionFromQuery(clause) + ")");
+                }
+            } else {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> mustNotClause = (Map<String, Object>) mustNotObj;
+                allConditions.add("!(" + buildConditionFromQuery(mustNotClause) + ")");
+            }
+        }
+
+        return allConditions.isEmpty() ? "true" : "(" + String.join(" AND ", allConditions) + ")";
+    }
+
+    private String buildIdsQuery(final Object idsObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> ids = (Map<String, Object>) idsObj;
+        @SuppressWarnings("unchecked")
+        final java.util.List<String> values = (java.util.List<String>) ids.get("values");
+        if (values == null || values.isEmpty()) {
+            return "false";
+        }
+        final java.util.List<String> conditions = new java.util.ArrayList<>();
+        for (final String id : values) {
+            conditions.add("documentid contains \"" + escapeYqlString(id) + "\"");
+        }
+        return "(" + String.join(" OR ", conditions) + ")";
+    }
+
+    private String buildQueryStringQuery(final Object queryStringObj) {
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> queryString = (Map<String, Object>) queryStringObj;
+        final String query = (String) queryString.get("query");
+        @SuppressWarnings("unchecked")
+        final java.util.List<String> fields = queryString.containsKey("fields") ? (java.util.List<String>) queryString.get("fields")
+                : null;
+        if (fields == null || fields.isEmpty()) {
+            return "default contains \"" + escapeYqlString(query) + "\"";
+        }
+        final java.util.List<String> conditions = new java.util.ArrayList<>();
+        for (final String field : fields) {
+            conditions.add(field + " contains \"" + escapeYqlString(query) + "\"");
+        }
+        return "(" + String.join(" OR ", conditions) + ")";
+    }
+
+    private String escapeYqlString(final String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @SuppressWarnings("unchecked")
