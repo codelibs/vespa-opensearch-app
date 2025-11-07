@@ -275,10 +275,15 @@ public class EdgeCaseTests {
     @Test
     void testSearchWithNullFieldValue() throws IOException {
         // Test search where field value is null
-        Map<String, Object> query = new HashMap<>();
-        query.put("match", Map.of("title", null));
+        Map<String, Object> matchQuery = new HashMap<>();
+        matchQuery.put("title", null);
 
-        Map<String, Object> requestBody = Map.of("query", query);
+        Map<String, Object> query = new HashMap<>();
+        query.put("match", matchQuery);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("query", query);
+
         HttpRequest request = createMockRequest("POST", "/_search", requestBody);
 
         // Mock response

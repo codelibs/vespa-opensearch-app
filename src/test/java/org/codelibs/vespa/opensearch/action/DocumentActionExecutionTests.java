@@ -28,6 +28,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.container.jdisc.HttpRequest;
 import com.yahoo.container.jdisc.HttpResponse;
+import com.yahoo.jdisc.http.HttpRequest.Method;
 
 public class DocumentActionExecutionTests {
 
@@ -212,6 +213,7 @@ public class DocumentActionExecutionTests {
     private HttpRequest createMockRequest(String method, String path, Map<String, Object> body) throws IOException {
         HttpRequest request = mock(HttpRequest.class);
         when(request.getUri()).thenReturn(java.net.URI.create("http://localhost" + path));
+        when(request.getMethod()).thenReturn(Method.valueOf(method));
 
         if (body != null) {
             // Convert map to JSON

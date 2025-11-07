@@ -66,6 +66,15 @@ public class BulkAction extends HttpAction {
                 }
 
                 if (lineNum % 2 == 1) {
+                    // Process previous action if it exists (for delete operations without document body)
+                    if (action != null) {
+                        final Map<String, Object> result = processBulkAction(action, new HashMap<>(), defaultIndex, client, documentType);
+                        items.add(result);
+                        if (result.containsKey("error")) {
+                            hasErrors = true;
+                        }
+                    }
+
                     // Action line
                     action = JsonXContent.jsonXContent
                             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, line).map();
@@ -86,6 +95,15 @@ public class BulkAction extends HttpAction {
                     }
 
                     action = null;
+                }
+            }
+
+            // Process final action if it exists (for delete operations without document body)
+            if (action != null) {
+                final Map<String, Object> result = processBulkAction(action, new HashMap<>(), defaultIndex, client, documentType);
+                items.add(result);
+                if (result.containsKey("error")) {
+                    hasErrors = true;
                 }
             }
         } catch (final IOException e) {

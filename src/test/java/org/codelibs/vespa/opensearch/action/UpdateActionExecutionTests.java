@@ -254,11 +254,12 @@ public class UpdateActionExecutionTests {
         // Test update on different indexes
         String[] indexes = {"index1", "index2", "products", "users"};
 
+        // Setup mock to accept any index
+        doNothing().when(vespaClient).partialUpdate(anyString(), eq("doc"), eq("doc1"), anyMap());
+
         for (String index : indexes) {
             Map<String, Object> requestBody = Map.of("doc", Map.of("title", "Updated"));
             HttpRequest request = createMockRequest("POST", "/" + index + "/_update/doc1", requestBody);
-
-            doNothing().when(vespaClient).partialUpdate(eq(index), eq("doc"), eq("doc1"), anyMap());
 
             HttpResponse response = action.execute(request);
 
