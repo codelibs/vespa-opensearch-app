@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.common.xcontent.json.JsonXContent;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.container.jdisc.HttpRequest;
 import com.yahoo.container.jdisc.HttpResponse;
 
@@ -295,9 +296,7 @@ public class SearchActionExecutionTests {
 
         if (body != null) {
             // Convert map to JSON
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            JsonXContent.jsonXContent.createGenerator(baos).writeValue(body).close();
-            byte[] jsonBytes = baos.toByteArray();
+            byte[] jsonBytes = new ObjectMapper().writeValueAsBytes(body);
             when(request.getData()).thenReturn(new ByteArrayInputStream(jsonBytes));
         } else {
             when(request.getData()).thenReturn(new ByteArrayInputStream(new byte[0]));
