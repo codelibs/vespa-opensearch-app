@@ -57,20 +57,19 @@ public class BulkAction extends HttpAction {
         try (InputStream is = httpRequest.getData(); BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
             String line;
             Map<String, Object> action = null;
-            int lineNum = 0;
+            boolean expectingAction = true;
 
             while ((line = reader.readLine()) != null) {
-                lineNum++;
                 if (line.trim().isEmpty()) {
                     continue;
                 }
 
-                if (lineNum % 2 == 1) {
+                if (expectingAction) {
                     // Process previous action if it exists (for delete operations without document body)
                     if (action != null) {
                         final Map<String, Object> result = processBulkAction(action, new HashMap<>(), defaultIndex, client, documentType);
                         items.add(result);
-                        if (result.containsKey("error")) {
+                        if (hasError(result)) {
                             hasErrors = true;
                         }
                     }
@@ -78,6 +77,13 @@ public class BulkAction extends HttpAction {
                     // Action line
                     action = JsonXContent.jsonXContent
                             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, line).map();
+
+                    // Check if this is a delete action (doesn't have document body)
+                    if (action.containsKey("delete")) {
+                        expectingAction = true; // Next line is another action
+                    } else {
+                        expectingAction = false; // Next line is document body
+                    }
                 } else {
                     // Document line
                     if (action == null) {
@@ -90,11 +96,12 @@ public class BulkAction extends HttpAction {
                     final Map<String, Object> result = processBulkAction(action, doc, defaultIndex, client, documentType);
                     items.add(result);
 
-                    if (result.containsKey("error")) {
+                    if (hasError(result)) {
                         hasErrors = true;
                     }
 
                     action = null;
+                    expectingAction = true; // Next line is action
                 }
             }
 
@@ -102,7 +109,7 @@ public class BulkAction extends HttpAction {
             if (action != null) {
                 final Map<String, Object> result = processBulkAction(action, new HashMap<>(), defaultIndex, client, documentType);
                 items.add(result);
-                if (result.containsKey("error")) {
+                if (hasError(result)) {
                     hasErrors = true;
                 }
             }
@@ -205,6 +212,20 @@ public class BulkAction extends HttpAction {
         }
 
         return result;
+    }
+
+    private boolean hasError(final Map<String, Object> result) {
+        // Check if any action result contains an error
+        for (final Map.Entry<String, Object> entry : result.entrySet()) {
+            if (entry.getValue() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> actionResult = (Map<String, Object>) entry.getValue();
+                if (actionResult.containsKey("error")) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

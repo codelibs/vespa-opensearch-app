@@ -136,6 +136,7 @@ public class DocumentActionExecutionTests {
         // Prepare request with invalid JSON
         HttpRequest request = mock(HttpRequest.class);
         when(request.getUri()).thenReturn(java.net.URI.create("http://localhost/myindex/_doc/doc1"));
+        when(request.getMethod()).thenReturn(Method.POST);
         when(request.getData()).thenReturn(new ByteArrayInputStream("{invalid json".getBytes()));
 
         // Execute
@@ -165,13 +166,13 @@ public class DocumentActionExecutionTests {
 
         // Mock response
         Map<String, Object> vespaResponse = Map.of("id", "doc1");
-        when(vespaClient.insert(eq("myindex"), eq("doc"), eq("doc1"), anyMap())).thenReturn(vespaResponse);
+        when(vespaClient.update(eq("myindex"), eq("doc"), eq("doc1"), anyMap())).thenReturn(vespaResponse);
 
         // Execute
         HttpResponse response = action.execute(request);
 
         // Verify
-        assertEquals(201, response.getStatus());
+        assertEquals(200, response.getStatus());
     }
 
     @Test
@@ -180,7 +181,7 @@ public class DocumentActionExecutionTests {
         Map<String, Object> requestBody = Map.of("title", "Test");
         HttpRequest request = createMockRequest("POST", "/myindex/_doc/doc1", requestBody);
 
-        // Mock exception
+        // Mock exception (without "not found" message, so it returns 500)
         when(vespaClient.insert(anyString(), anyString(), anyString(), anyMap()))
                 .thenThrow(new VespaClientException("Vespa connection failed"));
 

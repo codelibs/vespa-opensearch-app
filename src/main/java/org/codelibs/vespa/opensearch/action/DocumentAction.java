@@ -69,6 +69,12 @@ public class DocumentAction extends HttpAction {
         final String documentType = handler.getDocumentType();
         final Method method = httpRequest.getMethod();
 
+        if (method == null) {
+            final Map<String, Object> error = new HashMap<>();
+            error.put("error", "HTTP method is required");
+            return createResponse(httpRequest, 400, error);
+        }
+
         try {
             switch (method) {
             case POST:
@@ -87,7 +93,9 @@ public class DocumentAction extends HttpAction {
         } catch (final VespaClientException e) {
             final Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
-            return createResponse(httpRequest, 404, error);
+            // Return 500 for general Vespa errors, 404 if explicitly not found
+            int status = e.getMessage() != null && e.getMessage().toLowerCase().contains("not found") ? 404 : 500;
+            return createResponse(httpRequest, status, error);
         }
     }
 

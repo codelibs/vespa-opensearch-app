@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,7 +54,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(eq("myindex"), eq("doc"), eq("doc1"), anyMap());
+        when(vespaClient.partialUpdate(eq("myindex"), eq("doc"), eq("doc1"), anyMap())).thenReturn(Map.of())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -81,7 +80,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -99,7 +98,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -120,7 +119,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -138,7 +137,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -201,7 +200,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc-1:2:3", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), eq("doc-1:2:3"), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), eq("doc-1:2:3"), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -223,7 +222,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -240,7 +239,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
@@ -255,7 +254,7 @@ public class UpdateActionExecutionTests {
         String[] indexes = {"index1", "index2", "products", "users"};
 
         // Setup mock to accept any index
-        doNothing().when(vespaClient).partialUpdate(anyString(), eq("doc"), eq("doc1"), anyMap());
+        when(vespaClient.partialUpdate(anyString(), eq("doc"), eq("doc1"), anyMap())).thenReturn(Map.of());
 
         for (String index : indexes) {
             Map<String, Object> requestBody = Map.of("doc", Map.of("title", "Updated"));
@@ -276,7 +275,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        doNothing().when(vespaClient).partialUpdate(anyString(), anyString(), anyString(), anyMap());
+        when(vespaClient.partialUpdate(anyString(), anyString(), anyString(), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
