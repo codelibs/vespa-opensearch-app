@@ -54,7 +54,7 @@ public class UpdateActionExecutionTests {
         HttpRequest request = createMockRequest("POST", "/myindex/_update/doc1", requestBody);
 
         // Mock VespaClient response
-        when(vespaClient.partialUpdate(eq("myindex"), eq("doc"), eq("doc1"), anyMap())).thenReturn(Map.of())).thenReturn(Map.of());
+        when(vespaClient.partialUpdate(eq("myindex"), eq("doc"), eq("doc1"), anyMap())).thenReturn(Map.of());
 
         // Execute
         HttpResponse response = action.execute(request);
