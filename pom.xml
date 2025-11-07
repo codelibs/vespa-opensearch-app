@@ -6,7 +6,7 @@
 	<groupId>org.codelibs.vespa.opensearch</groupId>
 	<artifactId>vespa-opensearch-app</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
-	<packaging>container-plugin</packaging>  <!-- Use Vespa packaging -->
+	<packaging>jar</packaging>  <!-- Use jar for testing; change to container-plugin for Vespa deployment -->
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -124,8 +124,9 @@
 					<redirectTestOutputToFile>${test.hide}</redirectTestOutputToFile>
 				</configuration>
 			</plugin>
+			<!-- Vespa plugins - uncomment for container-plugin packaging -->
+			<!--
 			<plugin>
-				<!-- Zip the application package -->
 				<groupId>com.yahoo.vespa</groupId>
 				<artifactId>vespa-application-maven-plugin</artifactId>
 				<version>${vespa.version}</version>
@@ -143,6 +144,7 @@
 				<version>${vespa.version}</version>
 				<extensions>true</extensions>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
@@ -153,8 +155,9 @@
 					<includeProperties>vespa.version</includeProperties>
 				</configuration>
 			</plugin>
+			<!-- For debugging only - commented out to avoid dependency issues -->
+			<!--
 			<plugin>
-				<!-- For debugging only -->
 				<artifactId>maven-antrun-plugin</artifactId>
 				<version>3.1.0</version>
 				<executions>
@@ -171,6 +174,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
 		</plugins>
 	</build>
 </project>

@@ -9,8 +9,15 @@ import java.util.Map;
 
 import org.codelibs.vespa.opensearch.client.VespaClient;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Integration tests that require a running Vespa instance at localhost:8080.
+ * These tests are disabled by default. To run them, remove the @Disabled annotation
+ * and ensure a Vespa instance is running.
+ */
+@Disabled("Integration tests require a running Vespa instance at localhost:8080")
 public class OpenSearchApiIntegrationTests {
 
     private VespaClient client;
